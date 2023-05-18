@@ -394,13 +394,12 @@ MonoBehaviour:
   isoLevel: 0.5
   boundsSize: 1
   offset: {x: 0, y: 0, z: 0}
-  computeShader: {fileID: 7200000, guid: a371d78860847f448ae0e07dfcf3efaf, type: 3}
+  computeShader: {fileID: 7200000, guid: 9c31493edeaec3a47bc82823930df7ad, type: 3}
   min: 100
   max: -100
   rainbowLength: 32
   saturation: 1
   value: 1
-  position: {x: 0, y: 0, z: 0}
   noiseScale: 0.1
 --- !u!850595691 &1415691847
 LightingSettings:

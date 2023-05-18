@@ -29,22 +29,22 @@ public class ComputeMeshGenerator
     static private ComputeBuffer trianglesBuffer;
     static private ComputeBuffer countBuffer;
 
-    static private int chunkSize = 1;
-
     static public MeshData GenerateMeshDataForChunkData(ChunkData chunkData, ComputeShader computeShader)
     {
         Profiler.BeginSample("GenerateMeshDataForChunkData");
 
         MeshData meshData = new();
 
-        chunkSize = chunkData.size;
+        int numPointsPerAxis = chunkData.size;
 
         int marchHandle = computeShader.FindKernel("March");
 
-        int numPoints = chunkSize * chunkSize * chunkSize;
-        int numVoxelsPerAxis = chunkSize - 1;
+        int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
+        int numVoxelsPerAxis = numPointsPerAxis - 1;
         int numVoxels = numVoxelsPerAxis * numVoxelsPerAxis * numVoxelsPerAxis;
         int maxTriangleCount = numVoxels * 5;
+
+        int chunkDensity = TerrainGenerator.CHUNK_DENSITY;
 
         {
             pointsBuffer = new(numPoints, sizeof(float));
@@ -61,7 +61,9 @@ public class ComputeMeshGenerator
 
         computeShader.SetBuffer(marchHandle, "triangles", trianglesBuffer);
         trianglesBuffer.SetCounterValue(0);
-        computeShader.SetInt("chunkSize", chunkSize);
+        computeShader.SetInt("numPointsPerAxis", numPointsPerAxis);
+        computeShader.SetInt("chunkDensity", chunkDensity);
+
         Vector4 chunkPos = new(chunkData.pos.x, chunkData.pos.y, chunkData.pos.z, 0.0f);
         computeShader.SetVector("chunkPos", chunkPos);
 

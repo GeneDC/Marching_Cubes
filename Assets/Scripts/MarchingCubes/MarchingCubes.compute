@@ -14,12 +14,16 @@ struct Triangle
 shared StructuredBuffer<float> points;
 shared AppendStructuredBuffer<Triangle> triangles;
 
+float isoLevel;
+
 float3 chunkPos;
-int chunkSize;
+
+int numPointsPerAxis;
+int chunkDensity;
 
 int IndexFromCoord(int x, int y, int z)
 {
-    return z * chunkSize * chunkSize + y * chunkSize + x;
+    return z * numPointsPerAxis * numPointsPerAxis + y * numPointsPerAxis + x;
 }
 
 static const float3 edgePoints[] =
@@ -32,21 +36,18 @@ static const float3 edgePoints[] =
 [numthreads(numThreads, numThreads, numThreads)]
 void March (int3 id : SV_DispatchThreadID)
 {
-    int index = IndexFromCoord(id.x, id.y, id.z);
-
     float cubeCorners[8] = 
     {
-        points[index],
-        points[IndexFromCoord(id.x + 1, id.y, id.z)],
-        points[IndexFromCoord(id.x + 1, id.y, id.z + 1)],
-        points[IndexFromCoord(id.x, id.y, id.z + 1)],
-        points[IndexFromCoord(id.x, id.y + 1, id.z)],
-        points[IndexFromCoord(id.x + 1, id.y + 1, id.z)],
+        points[IndexFromCoord(id.x,     id.y,     id.z	  )],
+        points[IndexFromCoord(id.x + 1, id.y,     id.z    )],
+        points[IndexFromCoord(id.x + 1, id.y,     id.z + 1)],
+        points[IndexFromCoord(id.x,     id.y,     id.z + 1)],
+        points[IndexFromCoord(id.x,     id.y + 1, id.z    )],
+        points[IndexFromCoord(id.x + 1, id.y + 1, id.z    )],
         points[IndexFromCoord(id.x + 1, id.y + 1, id.z + 1)],
-        points[IndexFromCoord(id.x, id.y + 1, id.z + 1)]
+        points[IndexFromCoord(id.x,     id.y + 1, id.z + 1)],
     };
 
-    float isoLevel = 0;
     int cubeIndex = 0;
     if (cubeCorners[0] < isoLevel) cubeIndex |= 1;
     if (cubeCorners[1] < isoLevel) cubeIndex |= 2;
@@ -57,20 +58,20 @@ void March (int3 id : SV_DispatchThreadID)
     if (cubeCorners[6] < isoLevel) cubeIndex |= 64;
     if (cubeCorners[7] < isoLevel) cubeIndex |= 128;
 
+    float3 pos = id.xyz;
+
     for (int i = 0; triangulation[cubeIndex][i] != -1; i += 3)
     {
         int triIndexA = triangulation[cubeIndex][i];
         int triIndexB = triangulation[cubeIndex][i + 1];
         int triIndexC = triangulation[cubeIndex][i + 2];
 
-        float3 pos = id.xyz;
-
         Triangle tri;
-        tri.vertexA = edgePoints[triIndexA] + pos;
-        tri.vertexB = edgePoints[triIndexB] + pos;
-        tri.vertexC = edgePoints[triIndexC] + pos;
+        tri.vertexA = (edgePoints[triIndexA] + pos) / chunkDensity;
+        tri.vertexB = (edgePoints[triIndexB] + pos) / chunkDensity;
+        tri.vertexC = (edgePoints[triIndexC] + pos) / chunkDensity;
 
-        float3 vecWorldPos = (chunkPos * chunkSize) + pos;
+        float3 vecWorldPos = (chunkPos * numPointsPerAxis) + pos;
         int r = (sin(vecWorldPos.x / 16.0) + 1.0) * (127.5);
         int g = (sin(vecWorldPos.y / 32.0) + 1.0) * (127.5);
         int b = (sin(vecWorldPos.z / 64.0) + 1.0) * (127.5);

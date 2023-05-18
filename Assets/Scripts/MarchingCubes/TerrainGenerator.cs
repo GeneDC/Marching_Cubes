@@ -17,7 +17,7 @@ public class TerrainGenerator : MonoBehaviour
 {
     public static readonly int THREAD_GROUP_SIZE = 8;
     public static readonly int CHUNK_WIDTH = 16; // Physical width in meters
-    public static readonly int CHUNK_DENSITY = 2; // How many points per meter
+    public static readonly int CHUNK_DENSITY = 4; // How many points per meter
     public static readonly int CHUNK_POINTS = CHUNK_WIDTH * CHUNK_DENSITY + 1; // Actual points in each axis
     public static readonly int CHUNK_TOTAL_POINTS = CHUNK_POINTS * CHUNK_POINTS * CHUNK_POINTS;
 
@@ -44,9 +44,6 @@ public class TerrainGenerator : MonoBehaviour
     private float value = 1f;
 
     [SerializeField]
-    private Vector3 position = Vector3.zero;
-
-    [SerializeField]
     private float noiseScale = 0.9f;
 
     private NoiseTest.OpenSimplexNoise noise = null;
@@ -67,25 +64,21 @@ public class TerrainGenerator : MonoBehaviour
         public Vector3 b;
         public Vector3 c;
 
-        public Vector3 this[int i]
+        public readonly Vector3 this[int i]
         {
             get
             {
-                switch (i)
+                return i switch
                 {
-                    case 0:
-                        return a;
-                    case 1:
-                        return b;
-                    default:
-                        return c;
-                }
+                    0 => a,
+                    1 => b,
+                    _ => c,
+                };
             }
         }
     }
 
-
-    struct EdgeVertTable
+    readonly struct EdgeVertTable
     {
         private readonly int size;
         private readonly int[] x;
@@ -106,7 +99,7 @@ public class TerrainGenerator : MonoBehaviour
                 y[i] = -1;
         }
 
-        public int Get(int a_x, int a_y, int a_z, int index)
+        public readonly int Get(int a_x, int a_y, int a_z, int index)
         {
             int i = -1;
 
@@ -165,7 +158,7 @@ public class TerrainGenerator : MonoBehaviour
             return i;
         }
 
-        public void Set(int a_x, int a_y, int a_z, int index, int value)
+        public readonly void Set(int a_x, int a_y, int a_z, int index, int value)
         {
             if (index < 8)
             {
@@ -328,7 +321,7 @@ public class TerrainGenerator : MonoBehaviour
     private void GenerateChunk(Chunk chunk)
     {
         Profiler.BeginSample("GenerateChunk");
-
+        // need to compute-ify this function for speeeeeed
         Vector3Int chunkWorldPos = chunk.chunkData.pos * CHUNK_WIDTH;
 
         for (int x = 0; x < CHUNK_POINTS; x++)
@@ -380,7 +373,7 @@ public class TerrainGenerator : MonoBehaviour
         Profiler.BeginSample("CreateMeshesThread");
 
 
-        Stopwatch stopwatch = new Stopwatch();
+        Stopwatch stopwatch = new();
         stopwatch.Start();
 
         int milliseconds = 5;
@@ -484,9 +477,9 @@ public class TerrainGenerator : MonoBehaviour
 
     void ReleaseBuffers()
     {
-        if (triangleBuffer != null) triangleBuffer.Release();
-        if (pointsBuffer != null) pointsBuffer.Release();
-        if (triCountBuffer != null) triCountBuffer.Release();
+        triangleBuffer?.Release();
+        pointsBuffer?.Release();
+        triCountBuffer?.Release();
     }
 
     public static float Perlin3D(float x, float y, float z)
