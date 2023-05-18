@@ -1,0 +1,81 @@
+﻿#pragma kernel March
+#include "/MarchTables.compute"
+
+static const int numThreads = 8;
+
+struct Triangle
+{
+    float3 vertexA;
+    float3 vertexB;
+    float3 vertexC;
+    int3 color;
+};
+
+shared StructuredBuffer<float> points;
+shared AppendStructuredBuffer<Triangle> triangles;
+
+float3 chunkPos;
+int chunkSize;
+
+int IndexFromCoord(int x, int y, int z)
+{
+    return z * chunkSize * chunkSize + y * chunkSize + x;
+}
+
+static const float3 edgePoints[] =
+{ 
+    float3(0.5, 0.0, 0.0), float3(1.0, 0.0, 0.5), float3(0.5, 0.0, 1.0), float3(0.0, 0.0, 0.5),
+    float3(0.5, 1.0, 0.0), float3(1.0, 1.0, 0.5), float3(0.5, 1.0, 1.0), float3(0.0, 1.0, 0.5),
+    float3(0.0, 0.5, 0.0), float3(1.0, 0.5, 0.0), float3(1.0, 0.5, 1.0), float3(0.0, 0.5, 1.0)
+};
+
+[numthreads(numThreads, numThreads, numThreads)]
+void March (int3 id : SV_DispatchThreadID)
+{
+    int index = IndexFromCoord(id.x, id.y, id.z);
+
+    float cubeCorners[8] = 
+    {
+        points[index],
+        points[IndexFromCoord(id.x + 1, id.y, id.z)],
+        points[IndexFromCoord(id.x + 1, id.y, id.z + 1)],
+        points[IndexFromCoord(id.x, id.y, id.z + 1)],
+        points[IndexFromCoord(id.x, id.y + 1, id.z)],
+        points[IndexFromCoord(id.x + 1, id.y + 1, id.z)],
+        points[IndexFromCoord(id.x + 1, id.y + 1, id.z + 1)],
+        points[IndexFromCoord(id.x, id.y + 1, id.z + 1)]
+    };
+
+    float isoLevel = 0;
+    int cubeIndex = 0;
+    if (cubeCorners[0] < isoLevel) cubeIndex |= 1;
+    if (cubeCorners[1] < isoLevel) cubeIndex |= 2;
+    if (cubeCorners[2] < isoLevel) cubeIndex |= 4;
+    if (cubeCorners[3] < isoLevel) cubeIndex |= 8;
+    if (cubeCorners[4] < isoLevel) cubeIndex |= 16;
+    if (cubeCorners[5] < isoLevel) cubeIndex |= 32;
+    if (cubeCorners[6] < isoLevel) cubeIndex |= 64;
+    if (cubeCorners[7] < isoLevel) cubeIndex |= 128;
+
+    for (int i = 0; triangulation[cubeIndex][i] != -1; i += 3)
+    {
+        int triIndexA = triangulation[cubeIndex][i];
+        int triIndexB = triangulation[cubeIndex][i + 1];
+        int triIndexC = triangulation[cubeIndex][i + 2];
+
+        float3 pos = id.xyz;
+
+        Triangle tri;
+        tri.vertexA = edgePoints[triIndexA] + pos;
+        tri.vertexB = edgePoints[triIndexB] + pos;
+        tri.vertexC = edgePoints[triIndexC] + pos;
+
+        float3 vecWorldPos = (chunkPos * chunkSize) + pos;
+        int r = (sin(vecWorldPos.x / 16.0) + 1.0) * (127.5);
+        int g = (sin(vecWorldPos.y / 32.0) + 1.0) * (127.5);
+        int b = (sin(vecWorldPos.z / 64.0) + 1.0) * (127.5);
+        tri.color = int3(r, g, b);
+
+        triangles.Append(tri);
+    }
+}
