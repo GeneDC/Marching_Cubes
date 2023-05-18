@@ -117,7 +117,7 @@ public class ChunkLoader : MonoBehaviour
     private void Unload(Vector3Int a_chunkPos)
     {
         Chunk chunk = loadedChunks[a_chunkPos];
-        chunk.ClearMeshFilter();
+        chunk.ClearMesh();
         chunk.gameObject.SetActive(false);
 
         chunkPool.Enqueue(chunk);
@@ -139,7 +139,7 @@ public class ChunkLoader : MonoBehaviour
             chunk = CreateChunkGameObject();
         }
 
-        chunk.ClearMeshFilter();
+        chunk.ClearMesh();
 
         chunk.chunkData.pos = a_chunkPosition;
 

@@ -20,7 +20,7 @@ public class Chunk : MonoBehaviour
         get { return size; }
     }
 
-    Chunk(int size)
+    Chunk()
     {
         meshData = new MeshData();
     }
@@ -35,6 +35,13 @@ public class Chunk : MonoBehaviour
 
     public void ApplyMeshData()
     {
+        if (meshData.verts.Length < 3)
+        {
+            // Not even a single triangle to render, don't make the mesh
+            Debug.Assert(meshData.verts.Length == 0, $"There's {meshData.verts.Length} verts in this mesh data.");
+            return;
+        }
+
         UnityEngine.Rendering.IndexFormat meshIndexFormat = UnityEngine.Rendering.IndexFormat.UInt16;
 
         // UInt16 format can only support meshes with ~65,535 verts
@@ -62,8 +69,10 @@ public class Chunk : MonoBehaviour
         meshCollider.sharedMesh = meshFilter.sharedMesh;
     }
 
-    public void ClearMeshFilter()
+    public void ClearMesh()
     {
+        mesh = null;
         meshFilter.mesh = null;
+        meshCollider.sharedMesh = null;
     }
 }
